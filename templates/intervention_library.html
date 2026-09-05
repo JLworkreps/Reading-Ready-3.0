@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Intervention Library{% endblock %}
+{% block content %}
+<h1>Instructional Intervention Library</h1>
+<p class="subtle">Curated reading materials matched to documented literacy gaps.</p>
+
+<div class="card">
+  <form method="GET" class="form-grid">
+    <div class="field">
+      <label>Target Skill</label>
+      <select name="skill">
+        <option value="">All</option>
+        <option value="word_recognition" {{ 'selected' if request.args.get('skill')=='word_recognition' }}>Word Recognition</option>
+        <option value="comprehension" {{ 'selected' if request.args.get('skill')=='comprehension' }}>Comprehension</option>
+        <option value="fluency" {{ 'selected' if request.args.get('skill')=='fluency' }}>Fluency</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Reading Level</label>
+      <select name="level">
+        <option value="">All</option>
+        <option value="Instructional" {{ 'selected' if request.args.get('level')=='Instructional' }}>Instructional</option>
+        <option value="Frustration" {{ 'selected' if request.args.get('level')=='Frustration' }}>Frustration</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Grade Level</label>
+      <select name="grade">
+        <option value="">All</option>
+        <option value="4" {{ 'selected' if request.args.get('grade')=='4' }}>Grade 4</option>
+        <option value="5" {{ 'selected' if request.args.get('grade')=='5' }}>Grade 5</option>
+        <option value="6" {{ 'selected' if request.args.get('grade')=='6' }}>Grade 6</option>
+      </select>
+    </div>
+    <div class="field" style="align-self:end;">
+      <button class="btn" type="submit">Filter</button>
+    </div>
+  </form>
+</div>
+
+{% if current_user.role in ['teacher', 'coordinator'] %}
+<div class="card">
+  <h2>Add Material</h2>
+  <p class="subtle" style="margin-bottom:14px;">
+    Attaching a file is optional. Files are stored privately and only reachable through
+    a logged-in download link &mdash; students can only download files for materials
+    actually assigned to them.
+  </p>
+  <form method="POST" action="{{ url_for('upload_material') }}" enctype="multipart/form-data">
+    <div class="form-grid">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" name="title" required>
+      </div>
+      <div class="field">
+        <label>Target Skill</label>
+        <select name="target_skill" required>
+          <option value="word_recognition">Word Recognition</option>
+          <option value="comprehension">Comprehension</option>
+          <option value="fluency">Fluency</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Reading Level</label>
+        <select name="reading_level" required>
+          <option value="Frustration">Frustration</option>
+          <option value="Instructional">Instructional</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Grade Level</label>
+        <select name="grade_level" required>
+          <option value="4">Grade 4</option>
+          <option value="5">Grade 5</option>
+          <option value="6">Grade 6</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea name="description" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label>Attach File (optional)</label>
+      <input type="file" name="material_file">
+      <p class="subtle" style="margin-top:4px;">Allowed: PDF, Word, PowerPoint, images, audio, zip, txt.</p>
+    </div>
+    <button class="btn" type="submit">Add Material</button>
+  </form>
+</div>
+{% endif %}
+
+{% for m in materials %}
+<div class="material-card">
+  <h3>{{ m.title }}</h3>
+  <div class="pill-row">
+    <span class="chip">{{ m.target_skill.replace('_', ' ')|capitalize }}</span>
+    <span class="chip">{{ m.reading_level }}</span>
+    <span class="chip">Grade {{ m.grade_level }}</span>
+    {% if m.is_external %}
+    <span class="chip" style="background:var(--warn-soft); color:var(--warn);">External &middot; {{ m.source_name }}</span>
+    {% endif %}
+  </div>
+  <p>{{ m.description }}</p>
+  {% if m.is_external %}
+  <p style="margin-top:8px;">
+    <a class="btn btn-small btn-outline" href="{{ m.source_url }}" target="_blank" rel="noopener">Visit {{ m.source_name }} &#8599;</a>
+  </p>
+  {% elif m.file_path %}
+  <p style="margin-top:8px;">
+    <a class="btn btn-small btn-outline" href="{{ url_for('download_material', material_id=m.id) }}">Download attached file</a>
+  </p>
+  {% endif %}
+</div>
+{% else %}
+<p class="subtle">No materials match this filter.</p>
+{% endfor %}
+{% endblock %}

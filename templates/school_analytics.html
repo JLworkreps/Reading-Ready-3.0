@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}School Analytics{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>School Analytics</h1>
+  <a class="btn btn-outline" href="{{ url_for('coordinator_dashboard') }}">&larr; Back to Dashboard</a>
+</div>
+<p class="subtle">{{ school.name }} &mdash; grade-level breakdowns, trends over time, and intervention effectiveness.</p>
+
+<div class="card">
+  <h2>Reading Level by Grade</h2>
+  <p class="subtle">Each learner's most recent assessment, grouped by their enrolled grade level.</p>
+  {% if grade_level_chart %}
+    <div id="gradeLevelChart"></div>
+  {% else %}
+    <p class="subtle">No students on file yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Performance Trends</h2>
+  <p class="subtle">Average comprehension score across Pre-test, Mid-year, and Post-test, per grade level.</p>
+  {% if trend_chart %}
+    <div id="trendChart"></div>
+  {% else %}
+    <p class="subtle">No students on file yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Intervention Effectiveness</h2>
+  <p class="subtle">
+    Average Pre-test vs Post-test scores for learners who actually went through intervention
+    &mdash; this excludes learners who were exempt from the start or passed early on a teacher's
+    judgment call, since neither reflects whether the intervention itself worked.
+  </p>
+  {% if intervention_chart %}
+    <div id="interventionChart"></div>
+    <div class="stat-row" style="margin-top:16px;">
+      <div class="stat">
+        <div class="num">{{ intervention_stats.n }}</div>
+        <div class="label">Learners Included</div>
+      </div>
+      <div class="stat">
+        <div class="num">{{ '+' if intervention_stats.wr_gain >= 0 else '' }}{{ intervention_stats.wr_gain }}</div>
+        <div class="label">Word Recog. Gain (pts)</div>
+      </div>
+      <div class="stat">
+        <div class="num">{{ '+' if intervention_stats.comp_gain >= 0 else '' }}{{ intervention_stats.comp_gain }}</div>
+        <div class="label">Comprehension Gain (pts)</div>
+      </div>
+    </div>
+  {% else %}
+    <p class="subtle">
+      Not enough data yet &mdash; this chart needs at least one learner with both a Pre-test and
+      a Post-test on file who wasn't exempt or passed early.
+    </p>
+  {% endif %}
+</div>
+
+<script>
+  {% if grade_level_chart %}
+  Plotly.newPlot('gradeLevelChart', {{ grade_level_chart|safe }}.data, {{ grade_level_chart|safe }}.layout, {responsive: true});
+  {% endif %}
+  {% if trend_chart %}
+  Plotly.newPlot('trendChart', {{ trend_chart|safe }}.data, {{ trend_chart|safe }}.layout, {responsive: true});
+  {% endif %}
+  {% if intervention_chart %}
+  Plotly.newPlot('interventionChart', {{ intervention_chart|safe }}.data, {{ intervention_chart|safe }}.layout, {responsive: true});
+  {% endif %}
+</script>
+{% endblock %}

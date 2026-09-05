@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}All Students{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>All Students</h1>
+  <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">&larr; Back to System Admin</a>
+</div>
+<p class="subtle">Every enrolled learner across all schools.</p>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="filter-field" style="min-width:220px;">
+      <label>Search</label>
+      <input type="text" id="filterSearch" placeholder="Name or LRN...">
+    </div>
+    <div class="filter-field">
+      <label>School</label>
+      <select id="filterSchool">
+        <option value="">All</option>
+        {% for s in schools %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Grade Level</label>
+      <select id="filterGrade">
+        <option value="">All</option>
+        <option value="4">Grade 4</option>
+        <option value="5">Grade 5</option>
+        <option value="6">Grade 6</option>
+      </select>
+    </div>
+    <div class="filter-summary" id="filterSummary"></div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="studentsTable">
+      <tr><th>LRN</th><th>Last Name</th><th>First Name</th><th>School</th><th>Section</th><th>Grade</th><th>Latest Level</th></tr>
+      {% for s in students %}
+      {% set a = latest_by_student.get(s.id) %}
+      <tr data-search="{{ (s.full_name ~ ' ' ~ s.lrn)|lower }}" data-school="{{ s.section.school_id if s.section else '' }}" data-grade="{{ s.grade_level }}">
+        <td>{{ s.lrn }}</td>
+        <td>{{ s.last_name }}</td>
+        <td>{{ s.first_name }}</td>
+        <td>{{ s.section.school.name if s.section and s.section.school else '-' }}</td>
+        <td>{{ s.section.name if s.section else '-' }}</td>
+        <td>{{ s.grade_level }}</td>
+        <td>
+          {% if a %}<span class="badge badge-{{ a.reading_level }}">{{ a.reading_level }}</span>
+          {% else %}<span class="badge badge-neutral">Not assessed</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="subtle">No students on file yet.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="subtle" id="noResultsMsg" style="display:none; margin-top:10px;">No students match the current filters.</p>
+</div>
+
+<script>
+(function () {
+  var searchInput = document.getElementById('filterSearch');
+  var schoolFilter = document.getElementById('filterSchool');
+  var gradeFilter = document.getElementById('filterGrade');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#studentsTable tr[data-search]'));
+  var summaryEl = document.getElementById('filterSummary');
+  var noResultsEl = document.getElementById('noResultsMsg');
+  if (!rows.length) return;
+
+  function applyFilters() {
+    var searchVal = searchInput.value.trim().toLowerCase();
+    var schoolVal = schoolFilter.value;
+    var gradeVal = gradeFilter.value;
+    var visibleCount = 0;
+    rows.forEach(function (row) {
+      var show = (!searchVal || row.dataset.search.indexOf(searchVal) !== -1) &&
+                  (!schoolVal || row.dataset.school === schoolVal) &&
+                  (!gradeVal || row.dataset.grade === gradeVal);
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    summaryEl.textContent = 'Showing ' + visibleCount + ' of ' + rows.length;
+    noResultsEl.style.display = visibleCount === 0 ? '' : 'none';
+  }
+  searchInput.addEventListener('input', applyFilters);
+  schoolFilter.addEventListener('change', applyFilters);
+  gradeFilter.addEventListener('change', applyFilters);
+  applyFilters();
+})();
+</script>
+{% endblock %}

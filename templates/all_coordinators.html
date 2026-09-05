@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Reading Coordinators{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>Reading Coordinators</h1>
+  <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">&larr; Back to System Admin</a>
+</div>
+<p class="subtle">All coordinator accounts, sorted from most to least recently created.</p>
+
+<div class="card">
+  <h2>Create Coordinator Account</h2>
+  <form method="POST" action="{{ url_for('create_coordinator') }}">
+    <div class="form-grid">
+      <div class="field"><label>Username</label><input type="text" name="username" placeholder="e.g. jcruz" required>></div>
+      <div class="field"><label>Full Name</label><input type="text" name="full_name" placeholder="Juan Dela Cruz" required></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="juan.delacruz@deped.gov.ph" required>
+        <p class="subtle" style="margin-top:4px;">Must end in @deped.gov.ph.</p>
+      </div>
+      <div class="field"><label>Password</label><input type="password" name="password" placeholder="Temporary password" required></div>
+      
+      <div class="field">
+        <label>School</label>
+        <select name="school_id" required>
+          {% for s in schools %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <p class="subtle" style="margin-bottom:10px;">
+      No email server is configured for this deployment — you'll see the login details to share
+      manually once the account is created.
+    </p>
+    <button class="btn" type="submit">Create Account</button>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>Username</th><th>Name</th><th>Email</th><th>School</th><th>Status</th><th>Created</th><th>Actions</th></tr>
+    {% for c in coordinators %}
+    <tr>
+      <td>{{ c.username }}</td>
+      <td>{{ c.full_name }}</td>
+      <td>{{ c.email or '-' }}</td>
+      <td>{{ c.school.name if c.school else '-' }}</td>
+      <td>
+        {% if c.status == 'approved' %}<span class="badge badge-active">Active</span>
+        {% elif c.status == 'deactivated' %}<span class="badge badge-inactive">Inactive</span>
+        {% else %}<span class="badge badge-neutral">{{ c.status|capitalize }}</span>{% endif %}
+      </td>
+      <td class="subtle">{{ c.created_at.strftime('%b %d, %Y') if c.created_at else '-' }}</td>
+      <td>
+        <div class="icon-btn-row">
+          <a class="icon-btn" href="{{ url_for('edit_coordinator', user_id=c.id) }}" title="Edit" aria-label="Edit {{ c.full_name }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </a>
+          {% if c.status in ['approved', 'deactivated'] %}
+          <form class="inline" method="POST" action="{{ url_for('toggle_coordinator_status', user_id=c.id) }}"
+                onsubmit="return confirm('{{ 'Deactivate' if c.status == 'approved' else 'Reactivate' }} {{ c.full_name }}\'s account?');">
+            <button class="icon-btn {{ 'icon-btn-danger' if c.status == 'approved' else '' }}" type="submit"
+                    title="{{ 'Deactivate' if c.status == 'approved' else 'Reactivate' }}" aria-label="{{ 'Deactivate' if c.status == 'approved' else 'Reactivate' }} {{ c.full_name }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="subtle">No coordinator accounts yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Literacy Pattern Clustering{% endblock %}
+{% block content %}
+<h1>Literacy Pattern Clustering</h1>
+<p class="subtle">K-Means and DBSCAN are both run on word recognition accuracy, comprehension average, and reading speed;
+the higher-performing model (by silhouette score) is deployed.</p>
+
+{% if meta.model_used == 'none' %}
+<div class="card"><p class="subtle">{{ meta.reason }}</p></div>
+{% else %}
+<div class="stat-row">
+  <div class="stat"><div class="num">{{ meta.model_used }}</div><div class="label">Model Deployed</div></div>
+  <div class="stat"><div class="num">{{ meta.silhouette_score }}</div><div class="label">Silhouette Score</div></div>
+  <div class="stat"><div class="num">{{ meta.n_clusters }}</div><div class="label">Clusters Found</div></div>
+</div>
+
+<div class="card">
+  <h2>Cluster Comparison</h2>
+  <p class="subtle">K-Means silhouette: {{ meta.kmeans_silhouette if meta.kmeans_silhouette is not none else 'n/a' }}
+    &middot; DBSCAN silhouette: {{ meta.dbscan_silhouette if meta.dbscan_silhouette is not none else 'n/a' }}</p>
+  <div id="clusterChart"></div>
+</div>
+
+<div class="card">
+  <h2>Learner Cluster Assignments</h2>
+  <table>
+    <tr><th>Student</th><th>Cluster</th><th>Word Recog.</th><th>Comprehension</th><th>Speed</th><th>Level</th></tr>
+    {% for row in table %}
+    <tr>
+      <td>{{ row.student_name }}</td>
+      <td>{{ row.cluster }}</td>
+      <td>{{ row.word_recognition_accuracy }}%</td>
+      <td>{{ row.comprehension_avg }}%</td>
+      <td>{{ row.reading_speed_wpm }} wpm</td>
+      <td>
+        <span class="badge badge-{{ row.reading_level }}">{{ row.reading_level }}</span>
+        <div class="subtle" style="margin-top:2px; font-size:.72rem;">{{ row.term.title() if row.term else '-' }}-test</div>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script>
+  Plotly.newPlot('clusterChart', {{ chart_html|safe }}.data, {{ chart_html|safe }}.layout, {responsive: true});
+</script>
+{% endif %}
+{% endblock %}

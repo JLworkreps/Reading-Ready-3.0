@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Teachers{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>Teachers</h1>
+  <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">&larr; Back to System Admin</a>
+</div>
+<p class="subtle">All teacher accounts across every school, sorted from most to least recently created.</p>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="filter-field" style="min-width:220px;">
+      <label>Search</label>
+      <input type="text" id="filterSearch" placeholder="Name, email, or username...">
+    </div>
+    <div class="filter-field">
+      <label>School</label>
+      <select id="filterSchool">
+        <option value="">All</option>
+        {% for s in schools %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-summary" id="filterSummary"></div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="teachersTable">
+      <tr>
+        <th>Username</th><th>Full Name</th><th>Email</th><th>School</th>
+        <th>Grade Level</th><th>Status</th><th>Created</th><th>Actions</th>
+      </tr>
+      {% for t in teachers %}
+      {% set sec = sections_by_teacher.get(t.id) %}
+      <tr data-search="{{ (t.full_name ~ ' ' ~ t.username ~ ' ' ~ (t.email or ''))|lower }}" data-school="{{ t.school_id or '' }}">
+        <td>{{ t.username }}</td>
+        <td>{{ t.full_name }}</td>
+        <td>{{ t.email or '-' }}</td>
+        <td>{{ t.school.name if t.school else '-' }}</td>
+        <td>{{ 'Grade ' ~ sec.grade_level if sec else 'Unassigned' }}</td>
+        <td>
+          {% if t.status == 'approved' %}<span class="badge badge-active">Active</span>
+          {% elif t.status == 'deactivated' %}<span class="badge badge-inactive">Inactive</span>
+          {% else %}<span class="badge badge-neutral">{{ t.status|capitalize }}</span>{% endif %}
+        </td>
+        <td class="subtle">{{ t.created_at.strftime('%b %d, %Y') if t.created_at else '-' }}</td>
+       <td>
+        <div class="icon-btn-row">
+          <a class="icon-btn" href="{{ url_for('edit_teacher', user_id=t.id) }}" title="Edit" aria-label="Edit {{ t.full_name }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </a>
+          {% if t.status in ['approved', 'deactivated'] %}
+          <form class="inline" method="POST" action="{{ url_for('toggle_teacher_status', user_id=t.id) }}"
+                onsubmit="return confirm('{{ 'Deactivate' if t.status == 'approved' else 'Reactivate' }} {{ t.full_name }}\'s account?');">
+            <button class="icon-btn {{ 'icon-btn-danger' if t.status == 'approved' else '' }}" type="submit"
+                    title="{{ 'Deactivate' if t.status == 'approved' else 'Reactivate' }}" aria-label="{{ 'Deactivate' if t.status == 'approved' else 'Reactivate' }} {{ t.full_name }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="subtle">No teacher accounts yet.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="subtle" id="noResultsMsg" style="display:none; margin-top:10px;">No teachers match the current filters.</p>
+</div>
+
+<script>
+(function () {
+  var searchInput = document.getElementById('filterSearch');
+  var schoolFilter = document.getElementById('filterSchool');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#teachersTable tr[data-search]'));
+  var summaryEl = document.getElementById('filterSummary');
+  var noResultsEl = document.getElementById('noResultsMsg');
+  if (!rows.length) return;
+
+  function applyFilters() {
+    var searchVal = searchInput.value.trim().toLowerCase();
+    var schoolVal = schoolFilter.value;
+    var visibleCount = 0;
+    rows.forEach(function (row) {
+      var show = (!searchVal || row.dataset.search.indexOf(searchVal) !== -1) &&
+                  (!schoolVal || row.dataset.school === schoolVal);
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    summaryEl.textContent = 'Showing ' + visibleCount + ' of ' + rows.length;
+    noResultsEl.style.display = visibleCount === 0 ? '' : 'none';
+  }
+  searchInput.addEventListener('input', applyFilters);
+  schoolFilter.addEventListener('change', applyFilters);
+  applyFilters();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Encode Group Screening Test{% endblock %}
+{% block content %}
+<h1>Encode Group Screening Test</h1>
+<p class="subtle">Learner: <strong>{{ student.full_name }}</strong> ({{ student.lrn }}) &mdash; Grade {{ student.grade_level }}</p>
+
+<div class="card">
+  <p class="subtle" style="margin-bottom:16px;">
+    This is the whole-class written screening given <strong>before</strong> the individual oral
+    Pre-test. It doesn't set a reading level &mdash; it determines which grade-level passage this
+    learner should be handed for their Pre-test.
+  </p>
+
+  <form method="POST">
+    <div class="form-grid">
+      <div class="field">
+        <label>School Year</label>
+        <input type="text" name="school_year" value="{{ default_school_year }}" required>
+      </div>
+      <div class="field">
+        <label>Total Items on the Test</label>
+        <input type="text" readonly disabled value="{{ preset.gst_total_items }}">
+      </div>
+      <div class="field">
+        <label>Number of Items Answered Correctly</label>
+        <input type="number" step="1" min="0" name="score" required>
+      </div>
+    </div>
+
+    <p class="subtle" style="margin: 4px 0 18px;">
+      Total items is set on your dashboard under "Assessment Totals" for Grade
+      {{ student.grade_level }} and can't be changed here. Bands: below 40%
+      &rarr; 2 levels down &middot; 40&ndash;69% &rarr; 1 level down &middot; 70% and above &rarr; own grade level.
+    </p>
+
+    <button class="btn" type="submit">Save &amp; Compute Placement</button>
+    <a class="btn btn-outline" href="{{ url_for('teacher_dashboard') }}">Cancel</a>
+  </form>
+</div>
+
+{% if student.gst_records %}
+<div class="card">
+  <h2>Previous GST Records</h2>
+  <table>
+    <tr><th>School Year</th><th>Score</th><th>Percentage</th><th>Placement</th><th>Pre-test Passage</th></tr>
+    {% for g in student.gst_records|reverse %}
+    <tr>
+      <td>{{ g.school_year }}</td>
+      <td>{{ g.score }} / {{ g.total_items }}</td>
+      <td>{{ g.percentage }}%</td>
+      <td>{{ g.placement_label }}</td>
+      <td>Grade {{ g.placement_grade_level }}{% if not g.placement_in_library_range %} <span class="badge badge-neutral">outside library range</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

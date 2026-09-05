@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Consolidated Report{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>Consolidated Literacy Report</h1>
+  <div class="pill-row">
+    <a class="btn btn-outline" href="{{ url_for('coordinator_report_export_pdf') }}">Export PDF</a>
+    <a class="btn btn-outline" href="{{ url_for('coordinator_report_export_xlsx') }}">Export Excel</a>
+    <button class="btn btn-outline" onclick="window.print()">Print</button>
+  </div>
+</div>
+<p class="subtle">{{ school.name }} &mdash; latest recorded assessment per learner. Suitable for division submission.</p>
+
+<div class="card">
+  <table>
+    <tr>
+      <th>Section</th><th>Student</th><th>LRN</th><th>Last Term</th>
+      <th>Word Recog. (%)</th><th>Comprehension (%)</th><th>Speed (WPM)</th><th>Reading Level</th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.section }}</td><td>{{ r.student }}</td><td>{{ r.lrn }}</td><td>{{ r.term }}</td>
+      <td>{{ r.word_recognition if r.word_recognition is not none else '-' }}</td>
+      <td>{{ r.comprehension_avg if r.comprehension_avg is not none else '-' }}</td>
+      <td>{{ r.reading_speed_wpm if r.reading_speed_wpm is not none else '-' }}</td>
+      <td><span class="badge badge-{{ r.reading_level if r.reading_level in ['Independent','Instructional','Frustration'] else 'neutral' }}">{{ r.reading_level }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

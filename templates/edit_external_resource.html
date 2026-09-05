@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Edit External Resource{% endblock %}
+{% block content %}
+<h1>Edit External Resource</h1>
+
+<div class="card" style="max-width:640px;">
+  <form method="POST">
+    <div class="form-grid">
+      <div class="field">
+        <label>Title</label>
+        <input type="text" name="title" value="{{ resource.title }}" required>
+      </div>
+      <div class="field">
+        <label>Target Skill</label>
+        <select name="target_skill" required>
+          <option value="word_recognition" {{ 'selected' if resource.target_skill == 'word_recognition' }}>Word Recognition</option>
+          <option value="comprehension" {{ 'selected' if resource.target_skill == 'comprehension' }}>Comprehension</option>
+          <option value="fluency" {{ 'selected' if resource.target_skill == 'fluency' }}>Fluency</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Reading Level</label>
+        <select name="reading_level" required>
+          <option value="Frustration" {{ 'selected' if resource.reading_level == 'Frustration' }}>Frustration</option>
+          <option value="Instructional" {{ 'selected' if resource.reading_level == 'Instructional' }}>Instructional</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Grade Level</label>
+        <select name="grade_level" required>
+          <option value="4" {{ 'selected' if resource.grade_level == 4 }}>Grade 4</option>
+          <option value="5" {{ 'selected' if resource.grade_level == 5 }}>Grade 5</option>
+          <option value="6" {{ 'selected' if resource.grade_level == 6 }}>Grade 6</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Source Name</label>
+        <input type="text" name="source_name" value="{{ resource.source_name }}" required>
+      </div>
+      <div class="field">
+        <label>Source URL</label>
+        <input type="url" name="source_url" value="{{ resource.source_url }}" required>
+      </div>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea name="description" rows="2">{{ resource.description }}</textarea>
+    </div>
+    <button class="btn" type="submit">Save Changes</button>
+    <a class="btn btn-outline" href="{{ url_for('external_resources') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}
