@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-{% block title %}{{ code }} &middot; Reading-Ready{% endblock %}
-{% block content %}
-<div class="card" style="text-align:center; padding:40px;">
-  <h1>{{ code }}</h1>
-  <p>{{ message }}</p>
-  <a class="btn" href="{{ url_for('index') }}">Go home</a>
-</div>
-{% endblock %}
