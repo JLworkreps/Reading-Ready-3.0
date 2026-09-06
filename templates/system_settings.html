@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>System Settings</h1>
+  <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">&larr; Back to System Admin</a>
+</div>
+<p class="subtle">Basic system configuration, database backup, and restore.</p>
+
+<div class="card">
+  <h2>General Configuration<span class="info-icon" tabindex="0">i<span class="info-tip">These values control system-wide defaults — e.g. the school year pre-filled when a teacher encodes a new assessment.</span></span></h2>
+  <form method="POST">
+    {% for s in settings %}
+    <div class="field">
+      <label>{{ s.label }}</label>
+      <input type="text" name="{{ s.key }}" value="{{ values[s.key] }}">
+      <p class="subtle" style="margin-top:4px;">{{ s.help }}</p>
+    </div>
+    {% endfor %}
+    <button class="btn" type="submit">Save Settings</button>
+  </form>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Backup Database<span class="info-icon" tabindex="0">i<span class="info-tip">Downloads the entire live database as a single file. Do this regularly and store it somewhere safe — it's your only recovery option if something goes wrong.</span></span></h2>
+    <p class="subtle">
+      Downloads a copy of the live SQLite database file (<strong>{{ db_size_kb }} KB</strong>).
+      Keep it somewhere safe &mdash; it contains every school's data.
+    </p>
+    <a class="btn" href="{{ url_for('backup_database') }}">Download Backup</a>
+
+    {% if backups %}
+    <h3 style="margin-top:20px;">Automatic Pre-Restore Backups</h3>
+    <p class="subtle">Saved automatically on the server before every restore, in case a restore needs to be undone.</p>
+    <table>
+      <tr><th>Filename</th></tr>
+      {% for b in backups %}
+      <tr><td>{{ b }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Restore Database<span class="info-icon" tabindex="0">i<span class="info-tip">Replaces the live database with an uploaded backup file. The current database is automatically saved first, but you'll be logged out afterward.</span></span></h2>
+    <p class="subtle">
+      Uploads a <code>.db</code> / <code>.sqlite</code> / <code>.sqlite3</code> file and replaces the
+      live database with it. The file is checked for a valid SQLite header before anything is
+      touched, and the current database is automatically backed up first. You will be logged out
+      afterward and need to log back in.
+    </p>
+    <form method="POST" action="{{ url_for('restore_database') }}" enctype="multipart/form-data"
+          onsubmit="return confirm('This will REPLACE the live database with the uploaded file. The current database will be backed up automatically first, but you will be logged out. Continue?');">
+      <div class="field">
+        <label>Backup File</label>
+        <input type="file" name="backup_file" accept=".db,.sqlite,.sqlite3" required>
+      </div>
+      <button class="btn btn-outline" type="submit" style="border-color:var(--danger); color:var(--danger);">Restore Database</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

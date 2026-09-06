@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Edit Teacher{% endblock %}
+{% block content %}
+<h1>Edit Teacher</h1>
+<p class="subtle">Username <strong>{{ teacher.username }}</strong> cannot be changed here.</p>
+
+<div class="card" style="max-width:480px;">
+  <form method="POST">
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" name="full_name" value="{{ teacher.full_name }}" required>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="email" value="{{ teacher.email or '' }}" required>
+    </div>
+    <div class="field">
+      <label>School</label>
+      <input type="text" readonly disabled value="{{ teacher.school.name if teacher.school else '-' }}">
+      <p class="subtle" style="margin-top:4px;">
+        School assignment isn't editable here &mdash; it follows the section this teacher is assigned to.
+      </p>
+    </div>
+    <button class="btn" type="submit">Save Changes</button>
+    <a class="btn btn-outline" href="{{ url_for('all_teachers') if current_user.role == 'developer' else url_for('coordinator_dashboard') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}All Students{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>All Students</h1>
+  <a class="btn btn-outline" href="{{ url_for('coordinator_dashboard') }}">&larr; Back to Dashboard</a>
+</div>
+<p class="subtle">{{ school.name }} &mdash; {{ students|length }} students across {{ sections|length }} sections.</p>
+
+<div class="card">
+  <p class="subtle" style="margin-bottom:10px;">Search, filter by grade/section/sex/reading level, and open any learner's full profile.<span class="info-icon" tabindex="0">i<span class="info-tip">"Reading Level" reflects each learner's most recently recorded assessment (Pre, Mid, or Post).</span></span></p>
+  <div class="filter-bar">
+    <div class="filter-field" style="min-width:220px;">
+      <label>Search Student</label>
+      <input type="text" id="filterSearch" placeholder="Type a name...">
+    </div>
+    <div class="filter-field">
+      <label>Grade Level</label>
+      <select id="filterGrade">
+        <option value="">All</option>
+        <option value="4">Grade 4</option>
+        <option value="5">Grade 5</option>
+        <option value="6">Grade 6</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Section</label>
+      <select id="filterSection">
+        <option value="">All</option>
+        {% for sec in sections %}
+        <option value="{{ sec.id }}">{{ sec.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Sex</label>
+      <select id="filterSex">
+        <option value="">All</option>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Reading Level</label>
+      <select id="filterLevel">
+        <option value="">All</option>
+        <option value="Independent">Independent</option>
+        <option value="Instructional">Instructional</option>
+        <option value="Frustration">Frustration</option>
+        <option value="none">Not Assessed</option>
+      </select>
+    </div>
+    <div class="filter-summary" id="filterSummary"></div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="studentsTable">
+      <tr>
+        <th>LRN</th><th>Last Name</th><th>First Name</th><th>Sex</th><th>Section</th><th>Grade</th>
+        <th>Latest Term</th><th>Reading Level</th><th>Action</th>
+      </tr>
+      {% for s in students %}
+      {% set a = latest_assessment_by_student.get(s.id) %}
+      <tr data-name="{{ s.full_name|lower }}" data-section="{{ s.section_id }}" data-grade="{{ s.grade_level }}"
+          data-sex="{{ s.sex or '' }}" data-level="{{ a.reading_level if a else 'none' }}">
+        <td>{{ s.lrn }}</td>
+        <td>{{ s.last_name }}</td>
+        <td>{{ s.first_name }}</td>
+        <td>{{ s.sex or '-' }}</td>
+        <td>{{ s.section.name }}</td>
+        <td>{{ s.grade_level }}</td>
+        <td>{{ a.term.title() if a else 'None' }}</td>
+        <td>
+          {% if a %}
+          <span class="badge badge-{{ a.reading_level }}">{{ a.reading_level }}</span>
+          {% else %}
+          <span class="badge badge-neutral">Not assessed</span>
+          {% endif %}
+        </td>
+        <td><a class="btn btn-small" href="{{ url_for('student_profile', student_id=s.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="subtle" id="noResultsMsg" style="display:none; margin-top:10px;">No students match the current filters.</p>
+</div>
+
+<script>
+  var initialLevel = {{ level_param|tojson }};
+</script>
+
+<script>
+(function () {
+  var searchInput = document.getElementById('filterSearch');
+  var gradeFilter = document.getElementById('filterGrade');
+  var sectionFilter = document.getElementById('filterSection');
+  var sexFilter = document.getElementById('filterSex');
+  var levelFilter = document.getElementById('filterLevel');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#studentsTable tr[data-name]'));
+  var summaryEl = document.getElementById('filterSummary');
+  var noResultsEl = document.getElementById('noResultsMsg');
+  var initialLevel = {{ level_param|default('', true)|tojson }};
+  
+  function applyFilters() {
+    var searchVal = searchInput.value.trim().toLowerCase();
+    var gradeVal = gradeFilter.value;
+    var sectionVal = sectionFilter.value;
+    var sexVal = sexFilter.value;
+    var levelVal = levelFilter.value;
+    var visibleCount = 0, boys = 0, girls = 0;
+
+    rows.forEach(function (row) {
+      var show = (!searchVal || row.dataset.name.indexOf(searchVal) !== -1) &&
+                  (!gradeVal || row.dataset.grade === gradeVal) &&
+                  (!sectionVal || row.dataset.section === sectionVal) &&
+                  (!sexVal || row.dataset.sex === sexVal) &&
+                  (!levelVal || row.dataset.level === levelVal);
+      row.style.display = show ? '' : 'none';
+      if (show) {
+        visibleCount++;
+        if (row.dataset.sex === 'M') boys++;
+        if (row.dataset.sex === 'F') girls++;
+      }
+    });
+
+    summaryEl.textContent = 'Showing ' + visibleCount + ' of ' + rows.length +
+      ' \u2014 Boys: ' + boys + ' \u2022 Girls: ' + girls;
+    noResultsEl.style.display = visibleCount === 0 ? '' : 'none';
+  }
+
+  [searchInput, gradeFilter, sectionFilter, sexFilter, levelFilter].forEach(function (el) {
+    var evt = el.tagName === 'INPUT' ? 'input' : 'change';
+    el.addEventListener(evt, applyFilters);
+  });
+  if (initialLevel) { levelFilter.value = initialLevel; }
+  applyFilters();
+})();
+</script>
+{% endblock %}

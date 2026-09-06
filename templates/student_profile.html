@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} &middot; Profile{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>{{ student.full_name }}</h1>
+  {% if current_user.role == 'teacher' %}
+  <a class="btn" href="{{ url_for('encode_assessment', student_id=student.id) }}">+ New Assessment</a>
+  {% endif %}
+</div>
+<p class="subtle">LRN: {{ student.lrn }} &middot; Grade {{ student.grade_level }} &middot; Section: {{ student.section.name }}</p>
+
+<div class="card">
+  <div class="section-title">
+    <h2>Group Screening Test &amp; Placement<span class="info-icon" tabindex="0">i<span class="info-tip">Determines which grade-level passage this learner should read for their Pre-test — not their overall reading level.</span></span></h2>
+    {% if current_user.role == 'teacher' %}
+    <a class="btn btn-small" href="{{ url_for('encode_gst', student_id=student.id) }}">
+      {{ "Retake GST" if gst else "Encode GST" }}
+    </a>
+    {% endif %}
+  </div>
+  {% if gst %}
+    <p>
+      <strong>Score:</strong> {{ gst.score }} / {{ gst.total_items }} ({{ gst.percentage }}%)
+      &middot; <strong>Placement:</strong> {{ gst.placement_label }}
+    </p>
+    <p class="subtle">
+      School Year {{ gst.school_year }} &middot; tested at Grade {{ gst.grade_level_at_test }}
+    </p>
+    <p>
+      <strong>Pre-test passage to use:</strong> Grade {{ gst.placement_grade_level }}
+      {% if not gst.placement_in_library_range %}
+      <span class="badge badge-neutral">outside built-in library range &mdash; source manually</span>
+      {% endif %}
+    </p>
+  {% else %}
+    <p class="subtle">
+      No Group Screening Test on file yet. The GST determines which grade-level passage to use
+      for this learner's Pre-test &mdash; encode it before administering the Pre-test.
+    </p>
+  {% endif %}
+</div>
+
+{% if current_user.role in ['teacher', 'coordinator'] %}
+<div class="card">
+  <h2>Learner Portal Access<span class="info-icon" tabindex="0">i<span class="info-tip">Lets this learner log in themselves to see their assigned reading materials — they never see their own scores or reading level here.</span></span></h2>
+  {% if learner_account %}
+    <p>
+      This learner has a portal login: <strong>{{ learner_account.username }}</strong>
+      <span class="badge {{ 'badge-active' if learner_account.status == 'approved' else 'badge-inactive' }}">{{ learner_account.status|capitalize }}</span>
+    </p>
+    <p class="subtle">They can use this account to log in and view their own progress and assigned reading materials.</p>
+    {% if current_user.role == 'teacher' %}
+    <form method="POST" action="{{ url_for('reset_student_account_password', student_id=student.id) }}" style="margin-top:12px;">
+      <div class="form-grid">
+        <div class="field">
+          <label>New Password</label>
+          <input type="password" name="new_password" minlength="8" required>
+        </div>
+        <div class="field" style="align-self:end;">
+          <button class="btn btn-small" type="submit">Reset Password</button>
+        </div>
+      </div>
+    </form>
+    {% endif %}
+  {% else %}
+    <p class="subtle">
+      This learner doesn't have portal access yet.
+      {% if current_user.role == 'teacher' %}Create login credentials so they can view their own progress and reading materials.{% endif %}
+    </p>
+    {% if current_user.role == 'teacher' %}
+    <form method="POST" action="{{ url_for('create_student_account', student_id=student.id) }}">
+      <div class="form-grid">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" name="username" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" minlength="8" required>
+        </div>
+      </div>
+      <button class="btn btn-small" type="submit">Create Learner Account</button>
+    </form>
+    {% endif %}
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Reading Progress Trend<span class="info-icon" tabindex="0">i<span class="info-tip">Word recognition, comprehension, and reading speed across every recorded assessment for this learner, in order.</span></span></h2>
+    {% if trend_chart %}
+      <div id="trendChart"></div>
+    {% else %}
+      <p class="subtle">No assessments recorded yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Progress Evaluation &amp; Routing<span class="info-icon" tabindex="0">i<span class="info-tip">The system's decision on what happens next for this learner — exempt, continue intervention, or refer to ARAL — based on the Phil-IRI decision rules.</span></span></h2>
+    {% if routing.status == 'pending' %}
+      <p class="subtle">{{ routing.message }}</p>
+    {% else %}
+      {% set status_badge = {
+        'exempt': 'badge-Independent', 'completed': 'badge-Independent', 'passed_override': 'badge-Independent',
+        'in_intervention': 'badge-Instructional', 'for_aral': 'badge-Frustration'
+      } %}
+      <p>
+        <span class="badge {{ status_badge.get(routing.status, 'badge-neutral') }}">{{ routing.decision }}</span>
+      </p>
+      <p class="subtle">{{ routing.rationale }}</p>
+      {% if routing.levels_down %}
+      <p class="subtle">GST placement: {{ routing.levels_down }} level{{ 's' if routing.levels_down > 1 }} down &mdash; goal is passing at Grade {{ student.grade_level }}.</p>
+      {% endif %}
+
+      {% if current_user.role == 'teacher' and routing.status == 'in_intervention' %}
+      <form method="POST" action="{{ url_for('mark_passed_early', student_id=student.id) }}" style="margin-top:14px;">
+        {% if routing.eligible_for_early_pass %}
+        <p class="subtle" style="margin-bottom:6px;">Mid-year score is Independent &mdash; this learner may be ready to pass early.</p>
+        {% endif %}
+        <div class="field">
+          <label>Note (optional)</label>
+          <input type="text" name="note" placeholder="Reason for passing early...">
+        </div>
+        <button class="btn btn-small" type="submit">Mark as Passed Early</button>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    {% if risk %}
+    <h3 style="margin-top:16px;">Academic Risk Prediction</h3>
+    <div class="risk-box {{ 'risk-high' if risk.at_risk else 'risk-ok' }}">
+      <p><strong>Predicted next composite score:</strong> {{ risk.predicted_next_composite }}</p>
+      <p><strong>Trend:</strong> {{ risk.trend }}</p>
+      <p>{{ "⚠ Flagged as at-risk of persistent reading difficulty." if risk.at_risk else "Not currently flagged as at-risk." }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Assessment History<span class="info-icon" tabindex="0">i<span class="info-tip">Every Pre/Mid/Post-test on file, capped at one per stage — edit or delete a row here to correct a mistake instead of adding a duplicate.</span></span></h2>
+        <table>
+      <tr>
+        <th>Term</th><th>SY</th><th>Passage</th><th>Word Recog.</th><th>Comprehension</th><th>Speed</th><th>Level</th>
+        {% if current_user.role == 'teacher' %}<th>Actions</th>{% endif %}
+      </tr>
+      {% for a in assessments %}
+      <tr>
+        <td>{{ a.term.title() }}</td><td>{{ a.school_year }}</td>
+        <td>Gr. {{ a.passage_grade_level or student.grade_level }}</td>
+        <td>{{ a.word_recognition_accuracy }}%</td>
+        <td>{{ a.comprehension_avg }}%</td>
+        <td>{{ a.reading_speed_wpm }} wpm</td>
+        <td><span class="badge badge-{{ a.reading_level }}">{{ a.reading_level }}</span></td>
+        {% if current_user.role == 'teacher' %}
+        <td>
+          <div class="icon-btn-row">
+            <a class="icon-btn" href="{{ url_for('edit_assessment', assessment_id=a.id) }}" title="Edit" aria-label="Edit {{ a.term.title() }}-test">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </a>
+            <form method="POST" action="{{ url_for('delete_assessment', assessment_id=a.id) }}" class="inline"
+                  onsubmit="return confirm('Delete the {{ a.term.title() }}-test for {{ student.full_name }}? This cannot be undone.');">
+              <button class="icon-btn icon-btn-danger" type="submit" title="Delete" aria-label="Delete {{ a.term.title() }}-test">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+    {% if assessments and assessments[-1].weakest_skill %}
+    <p class="subtle" style="margin-top:12px;">
+      <strong>Specific problem area (latest assessment):</strong> {{ assessments[-1].weakest_skill }}
+      &mdash; literal is word-level recall, inferential is phrase-level connections, critical is
+      whole-story reasoning and Q&amp;A.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <h2>Recommended Intervention Materials<span class="info-icon" tabindex="0">i<span class="info-tip">Auto-matched to this learner's weakest skill, reading level, and passage grade — a live suggestion, separate from what's actually been assigned below.</span></span></h2>
+      {% if assessments and assessments[-1].reading_level != 'Independent' %}
+      <a class="btn btn-small btn-outline" href="{{ url_for('intervention_detail', student_id=student.id) }}">Full Review &amp; Confidence &rarr;</a>
+      {% endif %}
+    </div>
+    {% if recommendations %}
+      {% for m in recommendations %}
+      <div class="material-card">
+        <h3>{{ m.title }}{% if m.is_external %} <span class="chip" style="background:var(--warn-soft); color:var(--warn);">External &middot; {{ m.source_name }}</span>{% endif %}</h3>
+        <p class="subtle">{{ m.target_skill.replace('_', ' ')|capitalize }} &middot; {{ m.reading_level }} level &middot; Grade {{ m.grade_level }}</p>
+        <p>{{ m.description }}</p>
+        {% if current_user.role in ['teacher', 'coordinator'] %}
+        <form method="POST" action="{{ url_for('assign_material', student_id=student.id) }}" class="inline">
+          <input type="hidden" name="material_id" value="{{ m.id }}">
+          <button class="btn btn-small" type="submit">Assign to {{ student.full_name }}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="subtle">No remediation materials suggested (learner is at Independent level or has no assessments yet).</p>
+    {% endif %}
+
+    {% if current_user.role == 'teacher' %}
+    <h3 style="margin-top:18px;">Log Oral Reading Audio</h3>
+    <form method="POST" action="{{ url_for('upload_audio_log', student_id=student.id) }}" enctype="multipart/form-data">
+      <div class="field">
+        <label>Audio file</label>
+        <input type="file" name="audio_file" accept="audio/*">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea name="notes" rows="2" placeholder="Verification notes for manual scoring..."></textarea>
+      </div>
+      <button class="btn btn-small" type="submit">Save Audio Log</button>
+    </form>
+    {% if student.audio_logs %}
+    <p class="subtle" style="margin-top:10px;">{{ student.audio_logs|length }} audio log(s) on file (verification repository only &mdash; no automated transcription).</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Assigned Materials<span class="info-icon" tabindex="0">i<span class="info-tip">Materials actually handed to this learner and tracked to completion — distinct from the live recommendations above.</span></span></h2>
+  {% if assignments %}
+  <table>
+    <tr><th>Material</th><th>Assigned</th><th>Status</th><th>File</th></tr>
+    {% for asg in assignments %}
+    <tr>
+      <td>{{ asg.material.title }}</td>
+      <td>
+        {{ asg.assigned_at.strftime('%b %d, %Y') if asg.assigned_at else '-' }}
+        {% if asg.completed_at %}<br><span class="subtle">Completed {{ asg.completed_at.strftime('%b %d, %Y') }}</span>{% endif %}
+      </td>
+      <td><span class="badge {{ 'badge-active' if asg.status == 'completed' else 'badge-neutral' }}">{{ asg.status|capitalize }}</span></td>
+      <td>
+        {% if asg.material.is_external %}
+        <a href="{{ asg.material.source_url }}" target="_blank" rel="noopener">{{ asg.material.source_name }} &#8599;</a>
+        {% elif asg.material.file_path %}
+        <a href="{{ url_for('download_material', material_id=asg.material.id) }}">Download</a>
+        {% else %}&mdash;{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="subtle">No materials assigned to this learner yet.</p>
+  {% endif %}
+</div>
+
+{% if trend_chart %}
+<script>
+  Plotly.newPlot('trendChart', {{ trend_chart|safe }}.data, {{ trend_chart|safe }}.layout, {responsive: true});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}All Assessments{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>All Assessments</h1>
+  <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">&larr; Back to System Admin</a>
+</div>
+<p class="subtle">Most recent 500 assessment records across all schools.</p>
+
+<div class="card">
+  <p class="subtle" style="margin-bottom:10px;">Filter by assessment stage or reading level to audit scoring patterns system-wide.<span class="info-icon" tabindex="0">i<span class="info-tip">Read-only — corrections to an individual score must be made by the teacher who owns that learner's section.</span></span></p>
+  <form method="GET" class="form-grid">
+    <div class="field">
+      <label>Term</label>
+      <select name="term">
+        <option value="">All</option>
+        <option value="pre" {{ 'selected' if term_filter == 'pre' }}>Pre-test</option>
+        <option value="mid" {{ 'selected' if term_filter == 'mid' }}>Mid-year</option>
+        <option value="post" {{ 'selected' if term_filter == 'post' }}>Post-test</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Reading Level</label>
+      <select name="level">
+        <option value="">All</option>
+        <option value="Independent" {{ 'selected' if level_filter == 'Independent' }}>Independent</option>
+        <option value="Instructional" {{ 'selected' if level_filter == 'Instructional' }}>Instructional</option>
+        <option value="Frustration" {{ 'selected' if level_filter == 'Frustration' }}>Frustration</option>
+      </select>
+    </div>
+    <div class="field" style="align-self:end;">
+      <button class="btn" type="submit">Filter</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>Date</th><th>Learner</th><th>School</th><th>Term</th><th>SY</th><th>Word Recog.</th><th>Comprehension</th><th>Level</th></tr>
+    {% for a in assessments %}
+    <tr>
+      <td>{{ a.date_administered.strftime('%b %d, %Y') if a.date_administered else '-' }}</td>
+      <td>{{ a.student.full_name if a.student else '-' }}</td>
+      <td>{{ a.student.section.school.name if a.student and a.student.section and a.student.section.school else '-' }}</td>
+      <td>{{ a.term.title() }}</td>
+      <td>{{ a.school_year }}</td>
+      <td>{{ a.word_recognition_accuracy }}%</td>
+      <td>{{ a.comprehension_avg }}%</td>
+      <td><span class="badge badge-{{ a.reading_level }}">{{ a.reading_level }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="subtle">No assessments match this filter.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

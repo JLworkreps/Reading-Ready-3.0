@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Edit Coordinator{% endblock %}
+{% block content %}
+<h1>Edit Reading Coordinator</h1>
+<p class="subtle">Username <strong>{{ coordinator.username }}</strong> cannot be changed here.</p>
+
+<div class="card" style="max-width:480px;">
+  <form method="POST">
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" name="full_name" value="{{ coordinator.full_name }}" required>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="email" value="{{ coordinator.email or '' }}" required>
+    </div>
+    <div class="field">
+      <label>School</label>
+      <select name="school_id" required>
+        {% for s in schools %}
+        <option value="{{ s.id }}" {{ 'selected' if s.id == coordinator.school_id }}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">Save Changes</button>
+    <a class="btn btn-outline" href="{{ url_for('developer_dashboard') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

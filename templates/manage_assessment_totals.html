@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Manage Assessment Totals{% endblock %}
+{% block content %}
+<div class="section-title">
+  <h1>Assessment Totals &middot; Grade {{ section.grade_level }}</h1>
+  <a class="btn btn-outline" href="{{ url_for('teacher_dashboard') }}">&larr; Back to My Section</a>
+</div>
+<p class="subtle">
+  Total items are keyed in once per assessment stage. These numbers score every learner in this
+  section and can only be changed here — not while encoding an individual learner's score.
+</p>
+
+<div class="grid grid-3" style="margin-bottom:20px;">
+  {% for term in ['gst', 'pre', 'mid', 'post'] %}
+  {% set preset = totals.get(term, {}) %}
+  <div class="stat" style="text-align:left; padding:14px 16px;">
+    <div class="label" style="margin-bottom:6px;">{{ term_labels[term] }}</div>
+    {% if term == 'gst' %}
+    <div class="subtle">Total Items: <strong>{{ preset.gst_total_items }}</strong></div>
+    {% else %}
+    <div class="subtle">Word Recog.: <strong>{{ preset.word_recognition_total }}</strong></div>
+    <div class="subtle">Literal: <strong>{{ preset.literal_total }}</strong></div>
+    <div class="subtle">Inferential: <strong>{{ preset.inferential_total }}</strong></div>
+    <div class="subtle">Critical: <strong>{{ preset.critical_total }}</strong></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Set / Update Totals<span class="info-icon" tabindex="0">i<span class="info-tip">Whatever you save here becomes the total item count teachers see (read-only) when encoding that stage's scores — changing it later does not retroactively rescore past assessments.</span></span></h2>
+  <form method="POST" action="{{ url_for('update_assessment_totals') }}" id="totalsForm" class="preset-form">
+    <div class="field">
+      <label>Assessment Stage</label>
+      <select name="term" id="totalsTermSelect" required>
+        <option value="gst">Group Screening Test</option>
+        <option value="pre">Pre-test</option>
+        <option value="mid">Mid-year</option>
+        <option value="post">Post-test</option>
+      </select>
+    </div>
+
+    <div class="field" id="gstTotalField">
+      <label>Total Items</label>
+      <input type="number" step="1" min="1" name="gst_total_items" id="gstTotalInput">
+    </div>
+
+    <div class="form-grid hidden" id="stageTotalFields">
+      <div class="field"><label>Word Recognition Total</label>
+        <input type="number" step="1" min="1" name="word_recognition_total" id="wrTotalField"></div>
+      <div class="field"><label>Literal Items Total</label>
+        <input type="number" step="1" min="1" name="literal_total" id="litTotalField"></div>
+      <div class="field"><label>Inferential Items Total</label>
+        <input type="number" step="1" min="1" name="inferential_total" id="infTotalField"></div>
+      <div class="field"><label>Critical Items Total</label>
+        <input type="number" step="1" min="1" name="critical_total" id="critTotalField"></div>
+    </div>
+
+    <button class="btn btn-small" type="submit">Save Totals</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var totals = {{ totals|tojson }};
+  var termSelect = document.getElementById('totalsTermSelect');
+  var gstField = document.getElementById('gstTotalField');
+  var stageFields = document.getElementById('stageTotalFields');
+
+  function syncFields() {
+    var term = termSelect.value;
+    var isGst = term === 'gst';
+    gstField.classList.toggle('hidden', !isGst);
+    stageFields.classList.toggle('hidden', isGst);
+    var preset = totals[term] || {};
+    if (isGst) {
+      document.getElementById('gstTotalInput').value = preset.gst_total_items || 20;
+    } else {
+      document.getElementById('wrTotalField').value = preset.word_recognition_total || 100;
+      document.getElementById('litTotalField').value = preset.literal_total || 5;
+      document.getElementById('infTotalField').value = preset.inferential_total || 5;
+      document.getElementById('critTotalField').value = preset.critical_total || 5;
+    }
+  }
+  termSelect.addEventListener('change', syncFields);
+  syncFields();
+})();
+</script>
+{% endblock %}
